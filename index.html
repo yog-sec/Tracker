@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Browser & Network Info Web App</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      padding-top: 60px;
+    }
+    .card {
+      border-radius: 1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Theme toggle button -->
+  <div class="theme-toggle">
+    <button class="btn btn-outline-secondary" onclick="toggleTheme()">
+      Toggle Theme
+    </button>
+  </div>
+
+  <div class="container">
+    <h1 class="text-center mb-4">Browser, Device & Network Info</h1>
+
+    <h3 class="mb-3 text-success">Basic Browser & Device Info</h3>
+    <div class="row row-cols-1 row-cols-md-2 g-4 mb-5" id="deviceInfo"></div>
+
+    <h3 class="mb-3 text-info">Network & Location Info</h3>
+    <div class="row row-cols-1 row-cols-md-2 g-4" id="networkInfo"></div>
+  </div></div></br>
+
+<!-- HTTP -->
+<div class="container"">
+<h3 class="mb-3 text-warning">HTTP Headers</h3>
+<div class="row row-cols-1 row-cols-md-2 g-4" id="headersInfo"></div>
+</div>
+</br>
+<div class="container">
+<h3 class="mb-3 text-danger">JavaScript Fingerprinting</h3>
+<div class="row row-cols-1 row-cols-md-2 g-4" id="fingerprintInfo"></div>
+</div></br>
+<div class="container">
+<h3 class="mb-3 text-warning">Behavioral Tracking</h3>
+<div class="card mb-4">
+  <div class="card-body">
+    <ul id="behaviorLog" class="list-group list-group-flush" style="max-height: 300px; overflow-y: auto;"></ul>
+  </div>
+</div></div>
+</br>
+<div class="container">
+<h3 class="mb-3 text-danger">Media & Permissions</h3>
+<div class="card p-4 mb-4">
+  <button class="btn btn-primary mb-2" onclick="requestCamera()">Request Camera & Mic</button>
+  <button class="btn btn-primary mb-2" onclick="requestLocation()">Request Location</button>
+  <button class="btn btn-primary mb-2" onclick="readClipboard()">Read Clipboard</button>
+  <button class="btn btn-primary mb-2" onclick="requestNotifications()">Request Notification Permission</button>
+</div>
+
+<ul id="mediaLog" class="list-group list-group-flush mb-4"></ul>
+</div>
+</br>
+<div class="container">
+<h3 class="mb-3 text-danger">Referrer and Link Tracking</h3>
+<div class="card p-4 mb-4">
+  <p><strong>Current Page URL:</strong> <span id="currentUrl"></span></p>
+  <p><strong>Referrer:</strong> <span id="referrer"></span></p>
+  <p><strong>URL Parameters:</strong> <span id="urlParams"></span></p>
+  <p><strong>Anchor/Hash:</strong> <span id="hashValue"></span></p>
+
+  <a href="#demoAnchor" class="btn btn-warning mt-2" onclick="scrollToAnchor()">Click for Anchor Link</a>
+</div>
+
+<div id="demoAnchor" style="margin-top: 500px;" class="alert alert-info">
+  You've reached the anchor target (demoAnchor).
+</div></div></div>
+
+<footer style="background-color: #111; color: white; padding: 1rem; text-align: center; font-family: sans-serif;">
+  <div>© 2025 YOGSEC. All rights reserved.</div>
+  
+</footer>
+
+  <script>
+
+// Display current URL
+  document.getElementById("currentUrl").textContent = window.location.href;
+
+  // Referrer (the previous page that linked to this one)
+  document.getElementById("referrer").textContent = document.referrer || "None";
+
+  // URL Parameters (e.g., ?utm_source=twitter&utm_campaign=launch)
+  const urlParams = new URLSearchParams(window.location.search);
+  const allParams = Array.from(urlParams.entries()).map(([k, v]) => `${k}=${v}`).join(", ");
+  document.getElementById("urlParams").textContent = allParams || "None";
+
+  // Anchor/hash (e.g., #section1)
+  document.getElementById("hashValue").textContent = window.location.hash || "None";
+
+  // Smooth scroll to anchor
+  function scrollToAnchor() {
+    const target = document.getElementById("demoAnchor");
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth" });
+    }
+  }
+const mediaLog = document.getElementById("mediaLog");
+
+  function logMedia(msg) {
+    const li = document.createElement("li");
+    li.className = "list-group-item small";
+    li.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    mediaLog.prepend(li);
+  }
+
+  // Camera & Microphone
+  async function requestCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      logMedia("✅ Camera & Microphone access granted.");
+      stream.getTracks().forEach(track => track.stop());
+    } catch (err) {
+      logMedia("❌ Camera/Microphone denied: " + err.message);
+    }
+  }
+
+  // Geolocation
+  function requestLocation() {
+    if (!navigator.geolocation) {
+      logMedia("❌ Geolocation not supported.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        logMedia(`✅ Location access granted: (${latitude}, ${longitude})`);
+      },
+      (err) => {
+        logMedia("❌ Location access denied: " + err.message);
+      }
+    );
+  }
+
+  // Clipboard
+  async function readClipboard() {
+    try {
+      const text = await navigator.clipboard.readText();
+      logMedia("📋 Clipboard read: " + text);
+    } catch (err) {
+      logMedia("❌ Clipboard access failed: " + err.message);
+    }
+  }
+
+  // Notifications
+  function requestNotifications() {
+    if (!("Notification" in window)) {
+      logMedia("❌ Notifications API not supported.");
+      return;
+    }
+    Notification.requestPermission().then((perm) => {
+      logMedia("🔔 Notification permission: " + perm);
+      if (perm === "granted") {
+        new Notification("This is a test notification.");
+      }
+    });
+  }
+const logElement = document.getElementById("behaviorLog");
+  const startTime = Date.now();
+
+  function logBehavior(event) {
+    const li = document.createElement("li");
+    li.className = "list-group-item small";
+    li.textContent = `[${new Date().toLocaleTimeString()}] ${event}`;
+    logElement.prepend(li);
+  }
+
+  // Mouse movement
+  document.addEventListener("mousemove", (e) => {
+    logBehavior(`Mouse moved to (${e.clientX}, ${e.clientY})`);
+  });
+
+  // Clicks
+  document.addEventListener("click", (e) => {
+    logBehavior(`Clicked on element: ${e.target.tagName}`);
+  });
+
+  // Hovers
+  document.addEventListener("mouseover", (e) => {
+    logBehavior(`Hovered on element: ${e.target.tagName}`);
+  });
+
+  // Scroll
+  document.addEventListener("scroll", () => {
+    logBehavior(`Scrolled to Y: ${window.scrollY}`);
+  });
+
+  // Typing patterns
+  document.addEventListener("keydown", (e) => {
+    logBehavior(`Key pressed: ${e.key}`);
+  });
+
+  // Copy / Paste
+  document.addEventListener("copy", () => logBehavior("Copied content"));
+  document.addEventListener("paste", () => logBehavior("Pasted content"));
+
+  // Time spent on page
+  window.addEventListener("beforeunload", () => {
+    const timeSpent = ((Date.now() - startTime) / 1000).toFixed(2);
+    alert(`You spent ${timeSpent} seconds on this page.`);
+  });
+ async function getCanvasFingerprint() {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.textBaseline = 'top';
+      ctx.font = '14px Arial';
+      ctx.fillStyle = '#f60';
+      ctx.fillRect(125, 1, 62, 20);
+      ctx.fillStyle = '#069';
+      ctx.fillText('Canvas Fingerprint!', 2, 15);
+      ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+      ctx.fillText('Canvas Fingerprint!', 4, 17);
+      const dataURL = canvas.toDataURL();
+      let hash = 0;
+      for (let i = 0; i < dataURL.length; i++) {
+        const char = dataURL.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash |= 0;
+      }
+      return 'Hash: ' + hash;
+    } catch {
+      return 'Not supported';
+    }
+  }
+
+  async function getAudioFingerprint() {
+    try {
+      const ctx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 44100, 44100);
+      const oscillator = ctx.createOscillator();
+      const compressor = ctx.createDynamicsCompressor();
+
+      oscillator.type = 'triangle';
+      oscillator.frequency.value = 10000;
+      ctx.connect = oscillator.connect.bind(oscillator);
+      oscillator.connect(compressor);
+      compressor.connect(ctx.destination);
+      oscillator.start(0);
+      ctx.startRendering();
+
+      const renderedBuffer = await new Promise(resolve => {
+        ctx.oncomplete = e => resolve(e.renderedBuffer);
+      });
+
+      let hash = 0;
+      const data = renderedBuffer.getChannelData(0).subarray(4500, 4600);
+      for (let i = 0; i < data.length; i++) {
+        hash += Math.abs(data[i]);
+      }
+      return 'Fingerprint: ' + hash.toFixed(5);
+    } catch {
+      return 'Not supported';
+    }
+  }
+
+  async function getWebGLFingerprint() {
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+      const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+      const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+      return `Vendor: ${vendor}, Renderer: ${renderer}`;
+    } catch {
+      return 'Not supported';
+    }
+  }
+
+  function getPluginsMimes() {
+    const plugins = Array.from(navigator.plugins).map(p => p.name).join(', ') || 'None';
+    const mimes = Array.from(navigator.mimeTypes).map(m => m.type).join(', ') || 'None';
+    return {
+      "Plugins": plugins,
+      "MIME Types": mimes
+    };
+  }
+
+  async function getFingerprintData() {
+    const batteryInfo = await (navigator.getBattery?.().then(b => 
+      `Charging: ${b.charging}, Level: ${Math.round(b.level * 100)}%`) || Promise.resolve("Not supported"));
+
+    const canvasFp = await getCanvasFingerprint();
+    const audioFp = await getAudioFingerprint();
+    const webglFp = await getWebGLFingerprint();
+    const pluginMimeData = getPluginsMimes();
+
+    const data = {
+      "Canvas Fingerprint": canvasFp,
+      "Audio Fingerprint": audioFp,
+      "WebGL Fingerprint": webglFp,
+      "Battery Info": batteryInfo,
+      "Device Memory": navigator.deviceMemory ? `${navigator.deviceMemory} GB` : "Not supported",
+      "CPU Cores": navigator.hardwareConcurrency || "Not available",
+      ...pluginMimeData
+    };
+
+    displayInfo(data, "fingerprintInfo");
+  }
+
+  getFingerprintData();
+ function getHttpHeaders() {
+    fetch(window.location.href, { method: 'GET' })
+      .then(response => {
+        const headers = {};
+        for (let pair of response.headers.entries()) {
+          headers[pair[0]] = pair[1];
+        }
+        return headers;
+      })
+      .then(data => {
+        displayInfo(data, "headersInfo");
+      })
+      .catch(() => {
+        displayInfo({ "Error": "Unable to fetch HTTP headers from browser" }, "headersInfo");
+      });
+  }
+
+  // Run it after DOM load
+  getHttpHeaders();
+    function getBrowserInfo() {
+      const userAgent = navigator.userAgent;
+      let browserName = "Unknown";
+
+      if (userAgent.includes("Firefox")) browserName = "Mozilla Firefox";
+      else if (userAgent.includes("Edg")) browserName = "Microsoft Edge";
+      else if (userAgent.includes("Chrome")) browserName = "Google Chrome";
+      else if (userAgent.includes("Safari")) browserName = "Safari";
+      else if (userAgent.includes("OPR") || userAgent.includes("Opera")) browserName = "Opera";
+
+      return {
+        "Browser Name": browserName,
+        "Browser Version": navigator.appVersion,
+        "Operating System": navigator.platform,
+        "Screen Resolution": `${window.screen.width} x ${window.screen.height}`,
+        "Language": navigator.language,
+        "Timezone": Intl.DateTimeFormat().resolvedOptions().timeZone,
+        "User Agent": navigator.userAgent,
+        "Cookies Enabled": navigator.cookieEnabled ? "Yes" : "No"
+      };
+    }
+
+    function displayInfo(info, containerId) {
+      const container = document.getElementById(containerId);
+      for (const [key, value] of Object.entries(info)) {
+        const card = document.createElement("div");
+        card.className = "col";
+        card.innerHTML = `
+          <div class="card h-100 border-primary">
+            <div class="card-body">
+              <h5 class="card-title text-primary">${key}</h5>
+              <p class="card-text text-secondary"><code>${value}</code></p>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      }
+    }
+
+    function getNetworkInfo() {
+      fetch("http://ip-api.com/json/")
+        .then(res => res.json())
+        .then(data => {
+          const connection = navigator.connection || {};
+          const info = {
+            "IP Address": data.query,
+            "City": data.city,
+            "Region": data.regionName,
+            "Country": data.country,
+            "Latitude": data.lat,
+            "Longitude": data.lon,
+            "Organization / ISP": data.org,
+            "Timezone": data.timezone,
+            "Network Type": connection.effectiveType || "Unknown"
+          };
+          displayInfo(info, "networkInfo");
+        })
+        .catch(() => {
+          displayInfo({ "Error": "Could not fetch IP/location info." }, "networkInfo");
+        });
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute("data-bs-theme");
+      html.setAttribute("data-bs-theme", current === "light" ? "dark" : "light");
+    }
+
+    // On load
+    displayInfo(getBrowserInfo(), "deviceInfo");
+    getNetworkInfo();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

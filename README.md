@@ -1,4 +1,4 @@
-# tracker
+# Tracker Demo Web App
 
 **You Are Being Tracked – A Real-Time Demonstration of Web-Based Tracking Techniques**
 
